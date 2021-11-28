@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import pytz
 from sklearn.preprocessing import OneHotEncoder
-
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import KFold
 
 def cab_preprocessor(df,en): 
     #convert from epoch time to EST timezone since data was originally from Boston
@@ -107,3 +108,19 @@ records = pd.merge(records,destination_weather_df, on=['key2'])
 records.drop(['key1','key2'],inplace=True,axis=1)
 records = encoder(records,categorical_columns,en)
 print(records.head())
+
+def linearRegressor(records):
+    y = records['price']
+    X = records.drop('price', axis=1)
+    kf20 = KFold(n_splits=20, shuffle=False)
+    model = LinearRegression()
+    for train_index , test_index in kf10.split(X):
+        X_train , X_test = X.iloc[train_index,:],X.iloc[test_index,:]
+        y_train , y_test = y[train_index],y[test_index]
+        
+        model.fit(X_train,y_train)
+        pred_values = model.predict(X_test)
+        acc = model.score(X_test , y_test)
+        print(acc)
+
+linearRegressor(records)
