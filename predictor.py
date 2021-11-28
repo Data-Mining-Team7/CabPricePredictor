@@ -15,7 +15,7 @@ def cab_preprocessor(df):
     #parse data into weekend column
     df['weekend'] = est_time.dt.day_name()
     #drop categorical data from the df
-    df.drop(['weekend','time_stamp','product_id'], inplace=True, axis=1)
+    df.drop(['weekend','time_stamp','id'], inplace=True, axis=1)
     #remove rows without entries; now there are 637976 rows from df
     df.dropna(inplace=True)
     return df
@@ -65,7 +65,7 @@ df = pd.read_csv('data/cab_rides.csv')
 df2 = pd.read_csv('data/weather.csv')
 #filling weather df with zeroes for missing values
 df2 = df2.fillna(0)
-categorical_columns = ['source','destination','id','name','cab_type']
+categorical_columns = ['source','destination','product_id','name','cab_type']
 #fetch the preprocessed dataframe
 source_weather_df,destination_weather_df = weather_preprocessor(df2)
 #initialize the encoder
