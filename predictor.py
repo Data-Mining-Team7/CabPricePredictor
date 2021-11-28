@@ -4,6 +4,7 @@ import pytz
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import KFold
+from sklearn.model_selection import cross_val_score
 
 def cab_preprocessor(df,en): 
     #convert from epoch time to EST timezone since data was originally from Boston
@@ -84,6 +85,18 @@ def weather_preprocessor(df):
     df3.drop(['time_stamp','year', 'month', 'day', 'hour', 'minute','location'], inplace=True, axis=1)
     return df2,df3
 
+def linearRegressor(records,k):
+    #target column
+    y = records['price']
+    #all other columns from X apart from target column
+    X = records.drop('price', axis=1)
+    #create k-fold splits for testing and training
+    kf20 = KFold(n_splits=k, shuffle=False)
+    model = LinearRegression()
+    for train_index , test_index in kf20.split(X):
+        #split the data and fit the model 
+        result = cross_val_score(model , X, y, cv = kf20)
+        print("Avg accuracy: {}".format(result.mean()))
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
@@ -108,19 +121,4 @@ records = pd.merge(records,destination_weather_df, on=['key2'])
 records.drop(['key1','key2'],inplace=True,axis=1)
 records = encoder(records,categorical_columns,en)
 print(records.head())
-
-def linearRegressor(records):
-    y = records['price']
-    X = records.drop('price', axis=1)
-    kf20 = KFold(n_splits=20, shuffle=False)
-    model = LinearRegression()
-    for train_index , test_index in kf20.split(X):
-        X_train , X_test = X.iloc[train_index,:],X.iloc[test_index,:]
-        y_train , y_test = y[train_index],y[test_index]
-        
-        model.fit(X_train,y_train)
-        pred_values = model.predict(X_test)
-        acc = model.score(X_test , y_test)
-        print(acc)
-
-linearRegressor(records)
+linearRegressor(records,20)
