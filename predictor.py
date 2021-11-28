@@ -22,6 +22,8 @@ def cab_preprocessor(df,en):
     df.drop(['weekend','time_stamp','product_id'], inplace=True, axis=1)
     #remove rows without entries; now there are 637976 rows from df
     df.dropna(inplace=True)
+    #key of 'location+month+day+hour' to map to other df
+    df['key'] = df['source'].astype(str) + df['month'].astype(str) + df['day'].astype(str) + df['hour'].astype(str)
     return df
 
 def encoder(df,categorical_columns,en):
@@ -52,9 +54,10 @@ def weather_preprocessor(df):
     df['day'] = est_time.apply(lambda x: pd.Timestamp(x).day)
     df['hour'] = est_time.apply(lambda x: pd.Timestamp(x).hour)
     df['minute'] = est_time.apply(lambda x: pd.Timestamp(x).minute)
+    
+    
     df2 = df.rename(
         columns={
-            'location': 'source',
             'temp': 'source_temp',
             'clouds': 'source_clouds',
             'pressure': 'source_pressure',
@@ -63,24 +66,28 @@ def weather_preprocessor(df):
             'wind': 'source_wind'
         }
     )
+    
+    #key of 'location+month+day+hour' to map to other df
+    df2['key'] = df['location'].astype(str) + df['month'].astype(str) + df['day'].astype(str) + df['hour'].astype(str)
+    
+    df2.drop(['time_stamp','year', 'month', 'day', 'hour', 'minute'], inplace=True, axis=1)
     #df2.drop(['time_stamp'], inplace=True)
     return df2
 
-def main():
-    #initialize the encoder
-    en = OneHotEncoder(handle_unknown='ignore')
-    df = pd.read_csv('data/cab_rides.csv')
-    df2 = pd.read_csv('data/weather.csv')
-    categorical_columns = ['source','destination','id','name','cab_type']
-    #fetch the preprocessed dataframe
-    weather_df = weather_preprocessor(df2)
-    #initialize the encoder
-    en = OneHotEncoder(handle_unknown='ignore')
-    #fetch the preprocessed dataframe
-    cab_rides_df = cab_preprocessor(df,en)
-    records = cab_rides_df.merge(weather_df, on=['source','year','month','day','hour'])
-    records = encoder(records,categorical_columns,en)
-    print(records.head())
 
-if __name__ == '__main__':
-    main()
+#initialize the encoder
+en = OneHotEncoder(handle_unknown='ignore')
+df = pd.read_csv('data/cab_rides.csv')
+df2 = pd.read_csv('data/weather.csv')
+categorical_columns = ['source','destination','id','name','cab_type']
+#fetch the preprocessed dataframe
+weather_df = weather_preprocessor(df2)
+#initialize the encoder
+en = OneHotEncoder(handle_unknown='ignore')
+#fetch the preprocessed dataframe
+cab_rides_df = cab_preprocessor(df,en)
+#key of 'location+month+day+hour' to map to other df; drop duplicates in weather_df
+weather_df = weather_df.drop_duplicates(subset=['key'])
+records = pd.merge(cab_rides_df, weather_df, on=['key'])
+records = encoder(records,categorical_columns,en)
+print(records.head())
