@@ -23,10 +23,12 @@ def preprocessing(df,en):
     #parse data into weekend column
     df['weekend'] = est_time.dt.day_name().map(dict(Monday = 0, Tuesday = 0, Wednesday = 0, Thursday = 0, Friday = 0, Saturday = 1, Sunday=1))
     
-    #use one hot encoder to encode source and destination
-    en_df = pd.DataFrame(en.fit_transform(df[['source','destination']]).toarray(),columns=[list(en.get_feature_names())])
+    #use one hot encoder to encode source and destination and name of the cab
+    en_df = pd.DataFrame(en.fit_transform(df[['source','destination','name']]).toarray(),columns=[list(en.get_feature_names())])
     #concat the extracted encoded columns to the main dataframe 
     df = pd.concat([df,en_df], axis=1)
+    #drop categorical data from the df
+    df.drop(['source','destination','id','name','product_id'], inplace=True, axis=1)
     #output
     return df
 
