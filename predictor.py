@@ -93,10 +93,9 @@ def linearRegressor(records,k):
     #create k-fold splits for testing and training
     kf20 = KFold(n_splits=k, shuffle=False)
     model = LinearRegression()
-    for train_index , test_index in kf20.split(X):
-        #split the data and fit the model 
-        result = cross_val_score(model , X, y, cv = kf20)
-        print("Avg accuracy: {}".format(result.mean()))
+    #split the data and fit the model 
+    result = cross_val_score(model , X, y, cv = kf20)
+    print("Avg accuracy: {}".format(result.mean()))
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
