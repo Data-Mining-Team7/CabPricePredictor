@@ -4,10 +4,9 @@
 import pandas as pd
 import numpy as np
 import pytz
+from sklearn.preprocessing import OneHotEncoder
 
-def preprocessing():
-    df = pd.read_csv('data/cab_rides.csv')
-    
+def preprocessing(df,en): 
     #convert "cab_type" into binary, Lyft = 0, Uber = 1 & replace
     df['cab_type'] = df['cab_type'].map(dict(Lyft = 0, Uber = 1))
     
@@ -24,20 +23,22 @@ def preprocessing():
     #parse data into weekend column
     df['weekend'] = est_time.dt.day_name().map(dict(Monday = 0, Tuesday = 0, Wednesday = 0, Thursday = 0, Friday = 0, Saturday = 1, Sunday=1))
     
+    #use one hot encoder to encode source and destination
+    en_df = pd.DataFrame(en.fit_transform(df[['source','destination']]).toarray(),columns=[list(en.get_feature_names())])
+    #concat the extracted encoded columns to the main dataframe 
+    df = pd.concat([df,en_df], axis=1)
     #output
-    return(df[['cab_type', 'year', 'month', 'day', 'hour', 'minute','weekend']])
+    return df
 
 
 
 def main():
-    print(preprocessing())
+    #initialize the encoder
+    en = OneHotEncoder(handle_unknown='ignore')
+    df = pd.read_csv('data/cab_rides.csv')
+    #fetch the preprocessed dataframe
+    ndf = preprocessing(df,en)
+    print(ndf.head())
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
