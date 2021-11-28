@@ -26,12 +26,22 @@ def cab_preprocessor(df,en):
     df = pd.concat([df,en_df], axis=1)
     
     #drop categorical data from the df
-    df.drop(['source','destination','id','name','product_id', 'cab_type', 'time_stamp', 'weekend'], inplace=True, axis=1)
+    df.drop(['weekend','time_stamp','product_id'], inplace=True, axis=1)
     
     #remove rows without entries; now there are 637976 rows from df
     df.dropna(inplace=True)
     
     return df
+
+def encoder(df,categorical_columns,en):
+    #use one hot encoder to encode source and destination and name of the cab
+    en_df = pd.DataFrame(en.fit_transform(df[categorical_columns]).toarray(),columns=[list(en.get_feature_names())])
+    #concat the extracted encoded columns to the main dataframe 
+    df = pd.concat([df,en_df], axis=1) 
+    #drop categorical data from the df
+    df.drop(categorical_columns, inplace=True, axis=1)
+    return df
+    
 
 def weather_preprocessor(df):
     #There are missing values in rain column we will replace them with the avg rain fall
@@ -62,6 +72,7 @@ def main():
     en = OneHotEncoder(handle_unknown='ignore')
     df = pd.read_csv('data/cab_rides.csv')
     df2 = pd.read_csv('data/weather.csv')
+    categorical_columns = ['source','destination','id','name','product_id', 'cab_type']
     #fetch the preprocessed dataframe
     weather_df = weather_preprocessor(df2)
     #rename the column names to match the cab_rides.csv headers
@@ -78,7 +89,8 @@ def main():
     )
     record = mergeDf(df, source_weather_df)
     cab_rides_df = cab_preprocessor(df,en)
-    print(ndf.head())
+    cab_rides_df = encoder(cab_rides_df,categorical_columns,en)
+    print(cab_rides_df.head())
 
 if __name__ == '__main__':
     main()
