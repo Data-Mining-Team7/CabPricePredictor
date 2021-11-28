@@ -114,7 +114,7 @@ def linearRegressor(records):
     X = records.drop('price', axis=1)
     kf20 = KFold(n_splits=20, shuffle=False)
     model = LinearRegression()
-    for train_index , test_index in kf10.split(X):
+    for train_index , test_index in kf20.split(X):
         X_train , X_test = X.iloc[train_index,:],X.iloc[test_index,:]
         y_train , y_test = y[train_index],y[test_index]
         
