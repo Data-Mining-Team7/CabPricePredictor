@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 import pytz
 from sklearn.preprocessing import OneHotEncoder
-
+from sklearn.tree import DecisionTreeRegressor
+import warnings
+warnings.filterwarnings('ignore')
 
 def cab_preprocessor(df,en): 
     #convert from epoch time to EST timezone since data was originally from Boston
@@ -83,6 +85,25 @@ def weather_preprocessor(df):
     df3.drop(['time_stamp','year', 'month', 'day', 'hour', 'minute','location'], inplace=True, axis=1)
     return df2,df3
 
+def decisionTreeRegressor(records, depth):
+    y = records['price']
+    X = records.drop('price', axis=1)
+    
+    kf10 = KFold(n_splits=10, shuffle=False)
+    model = DecisionTreeRegressor(max_depth=depth)
+
+    acc_sum=0
+    for train_index , test_index in kf10.split(X):
+        X_train , X_test = X.iloc[train_index,:],X.iloc[test_index,:]
+        y_train , y_test = y[train_index],y[test_index]    
+        model.fit(X_train,y_train)
+        pred_values = model.predict(X_test)
+        acc =  model.score(X_test , y_test)
+        acc_sum += acc
+        
+    print('depth:', depth, ', acc:', acc_sum/10)
+    return acc_sum/10
+
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
@@ -107,3 +128,20 @@ records = pd.merge(records,destination_weather_df, on=['key2'])
 records.drop(['key1','key2'],inplace=True,axis=1)
 records = encoder(records,categorical_columns,en)
 print(records.head())
+
+depth_list = [2, 4, 6, 8, 10, 12]
+acc_list = [0] * len(depth_list)
+for i, depth in enumerate(depth_list):
+    acc = decisionTreeRegressor(records, depth)
+    acc_list[i] = acc
+
+x = depth_list
+y = acc_list 
+plt.plot(x, y)
+plt.xlabel('decision tree depth')
+plt.ylabel('avg accuracy')
+plt.title('Decision Tree')
+plt.show()
+
+
+
