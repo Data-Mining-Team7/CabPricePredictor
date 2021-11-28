@@ -7,9 +7,6 @@ import pytz
 from sklearn.preprocessing import OneHotEncoder
 
 def cab_preprocessor(df,en): 
-    #convert "cab_type" into binary, Lyft = 0, Uber = 1 & replace
-    df['cab_type'] = df['cab_type'].map(dict(Lyft = 0, Uber = 1))
-    
     #convert from epoch time to EST timezone since data was originally from Boston
     est_time = pd.to_datetime(df['time_stamp'], unit='ms').dt.tz_localize('utc').dt.tz_convert('US/Eastern')
     
@@ -21,15 +18,19 @@ def cab_preprocessor(df,en):
     df['minute'] = est_time.apply(lambda x: pd.Timestamp(x).minute)
     
     #parse data into weekend column
-    df['weekend'] = est_time.dt.day_name().map(dict(Monday = 0, Tuesday = 0, Wednesday = 0, Thursday = 0, Friday = 0, Saturday = 1, Sunday=1))
+    df['weekend'] = est_time.dt.day_name()
     
     #use one hot encoder to encode source and destination and name of the cab
-    en_df = pd.DataFrame(en.fit_transform(df[['source','destination','name']]).toarray(),columns=[list(en.get_feature_names())])
+    en_df = pd.DataFrame(en.fit_transform(df[['source','destination','name', 'cab_type', 'weekend']]).toarray(),columns=[list(en.get_feature_names())])
     #concat the extracted encoded columns to the main dataframe 
     df = pd.concat([df,en_df], axis=1)
+    
     #drop categorical data from the df
-    df.drop(['source','destination','id','name','product_id'], inplace=True, axis=1)
-    #output
+    df.drop(['source','destination','id','name','product_id', 'cab_type', 'time_stamp', 'weekend'], inplace=True, axis=1)
+    
+    #remove rows without entries; now there are 637976 rows from df
+    df.dropna(inplace=True)
+    
     return df
 
 def weather_preprocessor(df):
