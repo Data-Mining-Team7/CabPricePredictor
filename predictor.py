@@ -3,7 +3,7 @@ import numpy as np
 import pytz
 from sklearn.preprocessing import OneHotEncoder
 
-def cab_preprocessor(df,en): 
+def cab_preprocessor(df): 
     #convert from epoch time to EST timezone since data was originally from Boston
     est_time = pd.to_datetime(df['time_stamp'], unit='ms').dt.tz_localize('utc').dt.tz_convert('US/Eastern')
     #parse data into year, month, day, hour, minute columns
@@ -18,8 +18,6 @@ def cab_preprocessor(df,en):
     df.drop(['weekend','time_stamp','product_id'], inplace=True, axis=1)
     #remove rows without entries; now there are 637976 rows from df
     df.dropna(inplace=True)
-    #key of 'location+month+day+hour' to map to other df
-    df['key'] = df['source'].astype(str) + df['month'].astype(str) + df['day'].astype(str) + df['hour'].astype(str)
     return df
 
 def encoder(df,categorical_columns,en):
@@ -33,27 +31,12 @@ def encoder(df,categorical_columns,en):
     
 
 def weather_preprocessor(df):
-    #There are missing values in rain column we will replace them with the avg rain fall
+    #Getting average value of the weather for source and destination places
     avg_weather_df = df.groupby('location').mean().reset_index(drop=False)
-    for i in df.index:
-        if pd.isna(df.rain[i]):
-            #get location of the null rainfall row
-            location = df.location[i]
-            #get avg rain for that location
-            avg_rain = avg_weather_df.loc[avg_weather_df['location'] == location]['rain'].values[0]
-            #replace null with the avg_rain
-            df.rain[i] = avg_rain
-    #convert from epoch time to EST timezone since data was originally from Boston
-    est_time = pd.to_datetime(df['time_stamp'], unit='s').dt.tz_localize('utc').dt.tz_convert('US/Eastern')
-    df['year'] = est_time.apply(lambda x: pd.Timestamp(x).year)
-    df['month'] = est_time.apply(lambda x: pd.Timestamp(x).month)
-    df['day'] = est_time.apply(lambda x: pd.Timestamp(x).day)
-    df['hour'] = est_time.apply(lambda x: pd.Timestamp(x).hour)
-    df['minute'] = est_time.apply(lambda x: pd.Timestamp(x).minute)
-    
-    
-    df2 = df.rename(
+    avg_weather_df = avg_weather_df.drop('time_stamp', axis=1)
+    df2 = avg_weather_df.rename(
         columns={
+            'location': 'source',
             'temp': 'source_temp',
             'clouds': 'source_clouds',
             'pressure': 'source_pressure',
@@ -62,28 +45,39 @@ def weather_preprocessor(df):
             'wind': 'source_wind'
         }
     )
-    
-    #key of 'location+month+day+hour' to map to other df
-    df2['key'] = df['location'].astype(str) + df['month'].astype(str) + df['day'].astype(str) + df['hour'].astype(str)
-    
-    df2.drop(['time_stamp','year', 'month', 'day', 'hour', 'minute'], inplace=True, axis=1)
-    #df2.drop(['time_stamp'], inplace=True)
-    return df2
+    df3 = avg_weather_df.rename(
+        columns={
+            'location': 'destination',
+            'temp': 'destination_temp',
+            'clouds': 'destination_clouds',
+            'pressure': 'destination_pressure',
+            'rain': 'destination_rain',
+            'humidity': 'destination_humidity',
+            'wind': 'destination_wind'
+        }
+    )
+    return df2, df3
 
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
 df = pd.read_csv('data/cab_rides.csv')
 df2 = pd.read_csv('data/weather.csv')
+#filling weather df with zeroes for missing values
+df2 = df2.fillna(0)
 categorical_columns = ['source','destination','id','name','cab_type']
 #fetch the preprocessed dataframe
-weather_df = weather_preprocessor(df2)
+source_weather_df,destination_weather_df = weather_preprocessor(df2)
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
 #fetch the preprocessed dataframe
-cab_rides_df = cab_preprocessor(df,en)
-#key of 'location+month+day+hour' to map to other df; drop duplicates in weather_df
-weather_df = weather_df.drop_duplicates(subset=['key'])
-records = pd.merge(cab_rides_df, weather_df, on=['key'])
+cab_rides_df = cab_preprocessor(df)
+print(len(cab_rides_df))
+#merge the cab df with source weather df on the source column
+records = pd.merge(cab_rides_df, source_weather_df, on='source')
+#merge the cab df with destination weather df on the destination column
+records = pd.merge(records,destination_weather_df,on='destination')
+#call one hot encoder
 records = encoder(records,categorical_columns,en)
+print(len(records))
 print(records.head())
