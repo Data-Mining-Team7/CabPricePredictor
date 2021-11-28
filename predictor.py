@@ -16,7 +16,7 @@ def cab_preprocessor(df,en):
     #parse data into weekend column
     df['weekday'] = est_time.dt.day_name()
     #drop categorical data from the df
-    df.drop(['time_stamp','id'], inplace=True, axis=1)
+    df.drop(['time_stamp','id','product_id'], inplace=True, axis=1)
     #remove rows without entries; now there are 637976 rows from df
     df.dropna(inplace=True)
     #key1 of 'location+month+day+hour' to map to source weather df
@@ -89,11 +89,9 @@ en = OneHotEncoder(handle_unknown='ignore')
 df = pd.read_csv('data/cab_rides.csv')
 df2 = pd.read_csv('data/weather.csv')
 #categorical column names for encoding
-categorical_columns = ['source','destination','product_id','name','cab_type', 'weekday']
-#fetch the preprocessed dataframe
+categorical_columns = ['source','destination','name','cab_type', 'weekday']
+#fetch the processed weather dataframe
 source_weather_df, destination_weather_df = weather_preprocessor(df2)
-#initialize the encoder
-en = OneHotEncoder(handle_unknown='ignore')
 #fetch the preprocessed dataframe
 cab_rides_df = cab_preprocessor(df,en)
 #key of 'location+month+day+hour' to map to other df; drop duplicates in source and destionation weather df
