@@ -50,21 +50,8 @@ def weather_preprocessor(df):
     df['day'] = est_time.apply(lambda x: pd.Timestamp(x).day)
     df['hour'] = est_time.apply(lambda x: pd.Timestamp(x).hour)
     df['minute'] = est_time.apply(lambda x: pd.Timestamp(x).minute)
-    return df
-
-def mergeDf(df1, df2):
-    records = df1.merge(df2, on=['source','year','month','day','hour'])
-    return records
-
-def main():
-    #initialize the encoder
-    en = OneHotEncoder(handle_unknown='ignore')
-    df = pd.read_csv('data/cab_rides.csv')
-    df2 = pd.read_csv('data/weather.csv')
-    #fetch the preprocessed dataframe
-    weather_df = weather_preprocessor(df2)
     #rename the column names to match the cab_rides.csv headers
-    source_weather_df = weather_df.rename(
+    df2 = df.rename(
         columns={
             'location': 'source',
             'temp': 'source_temp',
@@ -75,9 +62,19 @@ def main():
             'wind': 'source_wind'
         }
     )
-    record = mergeDf(df, source_weather_df)
+    return df2
+
+def main():
+    #initialize the encoder
+    en = OneHotEncoder(handle_unknown='ignore')
+    df = pd.read_csv('data/cab_rides.csv')
+    df2 = pd.read_csv('data/weather.csv')
+    #fetch the preprocessed dataframe
     cab_rides_df = cab_preprocessor(df,en)
-    print(ndf.head())
+    weather_df = weather_preprocessor(df2)
+    #merge cab rides df and weather df on source location city and time
+    records = cab_rides_df.merge(weather_df, on=['source','year','month','day','hour'])
+    print(records.head())
 
 if __name__ == '__main__':
     main()
