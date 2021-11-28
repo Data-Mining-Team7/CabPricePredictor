@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import pytz
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.svm import LinearSVR
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import KFold
 
@@ -19,7 +19,7 @@ def cab_preprocessor(df,en):
     #parse data into weekend column
     df['weekday'] = est_time.dt.day_name()
     #drop categorical data from the df
-    df.drop(['time_stamp','id','product_id'], inplace=True, axis=1)
+    df.drop(['time_stamp','id'], inplace=True, axis=1)
     #remove rows without entries; now there are 637976 rows from df
     df.dropna(inplace=True)
     #key1 of 'location+month+day+hour' to map to source weather df
@@ -86,21 +86,27 @@ def weather_preprocessor(df):
     df3.drop(['time_stamp','year', 'month', 'day', 'hour', 'minute','location'], inplace=True, axis=1)
     return df2,df3
 
-def svr(records,k):
+def knnregressor(records):
     y = records['price']
     X = records.drop('price', axis=1)
+    #using k=20 splits to test the model
+    k = 20
     kf20 = KFold(n_splits=k, shuffle=False)
-    model = LinearSVR()
+    model = KNeighborsRegressor()
     result = cross_val_score(model, X, y, cv=kf20)
     print("Average accuracy: {}".format(result.mean()))
+    
+
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
-df = pd.read_csv('data/cab_rides.csv')
-df2 = pd.read_csv('data/weather.csv')
+df = pd.read_csv('cab_rides.csv')
+#df.dropna(inplace=True)
+#df = df.head(1000)
+df2 = pd.read_csv('weather.csv')
 #categorical column names for encoding
-categorical_columns = ['source','destination','name','cab_type', 'weekday']
-#fetch the processed weather dataframe
+categorical_columns = ['source','destination','product_id','name','cab_type', 'weekday']
+#fetch the preprocessed dataframe
 source_weather_df, destination_weather_df = weather_preprocessor(df2)
 #fetch the preprocessed dataframe
 cab_rides_df = cab_preprocessor(df,en)
@@ -115,6 +121,4 @@ records = pd.merge(records,destination_weather_df, on=['key2'])
 records.drop(['key1','key2'],inplace=True,axis=1)
 records = encoder(records,categorical_columns,en)
 print(records.head())
-#define number of cross validation splits
-k=20
-svr(records,k)
+knnregressor(records)
