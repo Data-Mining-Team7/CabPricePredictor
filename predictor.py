@@ -14,10 +14,6 @@ def cab_preprocessor(df,en):
     df['minute'] = est_time.apply(lambda x: pd.Timestamp(x).minute)
     #parse data into weekend column
     df['weekend'] = est_time.dt.day_name()
-    #use one hot encoder to encode source and destination and name of the cab
-    en_df = pd.DataFrame(en.fit_transform(df[['source','destination','name', 'cab_type', 'weekend']]).toarray(),columns=[list(en.get_feature_names())])
-    #concat the extracted encoded columns to the main dataframe 
-    df = pd.concat([df,en_df], axis=1)
     #drop categorical data from the df
     df.drop(['weekend','time_stamp','product_id'], inplace=True, axis=1)
     #remove rows without entries; now there are 637976 rows from df
