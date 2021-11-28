@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 import pytz
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import KFold
+
 
 def cab_preprocessor(df,en): 
     #convert from epoch time to EST timezone since data was originally from Boston
