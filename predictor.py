@@ -4,6 +4,7 @@ import pytz
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import KFold
+from sklearn.preprocessing import StandardScaler
 
 def cab_preprocessor(df,en): 
     #convert from epoch time to EST timezone since data was originally from Boston
@@ -90,18 +91,22 @@ def neuralNetworkRegressor(records,k):
     #all other columns from X apart from target column
     X = records.drop('price', axis=1)
     #create k-fold splits for testing and training
-    kf10 = KFold(n_splits=k, shuffle=False)
+    kf20 = KFold(n_splits=k, shuffle=False)
     model = MLPRegressor()
     #split the data and fit the model
     accuracy_list = []
-    for train_index , test_index in kf10.split(X):
+    for train_index , test_index in kf20.split(X):
         X_train , X_test = X.iloc[train_index,:],X.iloc[test_index,:]
         y_train , y_test = y[train_index],y[test_index]
         
+        scaler = StandardScaler()
+        scaler.fit(X_train)
+        X_train = pd.DataFrame(scaler.transform(X_train), columns=X.columns)
+        X_test = pd.DataFrame(scaler.transform(X_test), columns=X.columns)
         model.fit(X_train,y_train)
         acc = model.score(X_test , y_test)
         accuracy_list.append(acc)
-    print("Avg accuracy: ",sum(accuracy_list)/k)
+    print("Avg acuuracy: ",sum(accuracy_list)/k)
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
