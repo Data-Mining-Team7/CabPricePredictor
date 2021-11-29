@@ -2,7 +2,9 @@ import pandas as pd
 import numpy as np
 import pytz
 from sklearn.preprocessing import OneHotEncoder
-
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import KFold
+from sklearn.model_selection import cross_val_score
 
 def cab_preprocessor(df,en): 
     #convert from epoch time to EST timezone since data was originally from Boston
@@ -83,6 +85,17 @@ def weather_preprocessor(df):
     df3.drop(['time_stamp','year', 'month', 'day', 'hour', 'minute','location'], inplace=True, axis=1)
     return df2,df3
 
+def randomForestRegressor(records):
+    y = records['price']
+    X = records.drop('price', axis=1)
+    
+    kf10 = KFold(n_splits=10, shuffle=False)
+    #n_estimators = # of trees in the forest, max_depth= maximum depth of a tree
+    model = RandomForestRegressor()
+    result = cross_val_score(model , X, y, cv = kf10)
+
+    print("Avg accuracy: {}".format(result.mean()))
+
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
@@ -105,3 +118,6 @@ records = pd.merge(records,destination_weather_df, on=['key2'])
 records.drop(['key1','key2'],inplace=True,axis=1)
 records = encoder(records,categorical_columns,en)
 print(records.head())
+
+randomForestRegressor(records)
+
