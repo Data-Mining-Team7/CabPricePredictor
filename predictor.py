@@ -5,6 +5,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
 
 def cab_preprocessor(df,en): 
     #convert from epoch time to EST timezone since data was originally from Boston
@@ -91,11 +92,23 @@ def linearRegressor(records,k):
     #all other columns from X apart from target column
     X = records.drop('price', axis=1)
     #create k-fold splits for testing and training
-    kf20 = KFold(n_splits=k, shuffle=False)
+    kf10 = KFold(n_splits=k, shuffle=False)
     model = LinearRegression()
-    #split the data and fit the model 
-    result = cross_val_score(model , X, y, cv = kf20)
-    print("Avg accuracy: {}".format(result.mean()))
+    #split the data and fit the model
+    accuracy_list = []
+    for train_index , test_index in kf10.split(X):
+        X_train , X_test = X.iloc[train_index,:],X.iloc[test_index,:]
+        y_train , y_test = y[train_index],y[test_index]
+        scaler = StandardScaler()
+        scaler.fit(X_train)
+        X_train = pd.DataFrame(scaler.transform(X_train), columns=X.columns)
+        X_test = pd.DataFrame(scaler.transform(X_test), columns=X.columns)
+        
+        model.fit(X_train,y_train)
+        acc = model.score(X_test , y_test)
+        accuracy_list.append(acc)
+        print(acc)
+    print(sum(accuracy_list)/k)
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
@@ -118,5 +131,5 @@ records = pd.merge(records,destination_weather_df, on=['key2'])
 records.drop(['key1','key2'],inplace=True,axis=1)
 records = encoder(records,categorical_columns,en)
 print(records.head())
-linearRegressor(records,20)
+linearRegressor(records,10)
 
