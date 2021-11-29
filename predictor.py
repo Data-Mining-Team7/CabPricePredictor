@@ -107,8 +107,7 @@ def linearRegressor(records,k):
         model.fit(X_train,y_train)
         acc = model.score(X_test , y_test)
         accuracy_list.append(acc)
-        print(acc)
-    print(sum(accuracy_list)/k)
+    print("Avg accuracy: ", sum(accuracy_list)/k)
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
