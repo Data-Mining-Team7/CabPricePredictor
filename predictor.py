@@ -2,9 +2,12 @@ import pandas as pd
 import numpy as np
 import pytz
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.neural_network import MLPRegressor
+from sklearn.model_selection import KFold
+from sklearn.preprocessing import StandardScaler
 
 
-def cab_preprocessor(df,en): 
+def cab_preprocessor(df): 
     #convert from epoch time to EST timezone since data was originally from Boston
     est_time = pd.to_datetime(df['time_stamp'], unit='ms').dt.tz_localize('utc').dt.tz_convert('US/Eastern')
     #parse data into year, month, day, hour, minute columns
@@ -83,6 +86,18 @@ def weather_preprocessor(df):
     df3.drop(['time_stamp','year', 'month', 'day', 'hour', 'minute','location'], inplace=True, axis=1)
     return df2,df3
 
+def neuralNetworkRegressor(records):
+    #target column
+    y = records['price']
+    #all other columns from X apart from target column
+    X = records.drop('price', axis=1)
+    model = MLPRegressor()    
+    scaler = StandardScaler()
+    scaler.fit(X)
+    X = pd.DataFrame(scaler.transform(X), columns=X.columns)
+    model.fit(X,y)
+    return model
+    
 
 #initialize the encoder
 en = OneHotEncoder(handle_unknown='ignore')
@@ -93,7 +108,7 @@ categorical_columns = ['source','destination','name','cab_type', 'weekday']
 #fetch the processed weather dataframe
 source_weather_df, destination_weather_df = weather_preprocessor(df2)
 #fetch the preprocessed dataframe
-cab_rides_df = cab_preprocessor(df,en)
+cab_rides_df = cab_preprocessor(df)
 #key of 'location+month+day+hour' to map to other df; drop duplicates in source and destionation weather df
 source_weather_df = source_weather_df.drop_duplicates(subset=['key1'])
 destination_weather_df = destination_weather_df.drop_duplicates(subset=['key2'])
@@ -104,4 +119,19 @@ records = pd.merge(records,destination_weather_df, on=['key2'])
 #Drop the key1 and key2 columns 
 records.drop(['key1','key2'],inplace=True,axis=1)
 records = encoder(records,categorical_columns,en)
-print(records.head())
+model = neuralNetworkRegressor(records)
+
+#model predication for demo purpose
+test_sample = pd.read_csv('test/test_sample.csv')
+#preprocess the sampled data
+test_sample = cab_preprocessor(test_sample)
+test_sample = pd.merge(test_sample, source_weather_df, on=['key1'])
+test_sample = pd.merge(test_sample,destination_weather_df, on=['key2'])
+test_sample.drop(['key1','key2'],inplace=True,axis=1)
+test_sample = encoder(test_sample,categorical_columns,en)
+scaler = StandardScaler()
+scaler.fit(test_sample)
+test_sample = pd.DataFrame(scaler.transform(test_sample), columns=test_sample.columns)
+#prediction
+predicted_price = model.predict(test_sample)
+print("Predicated prices are: \n", predicted_price)
